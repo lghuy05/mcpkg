@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "io.github.Digital-Defiance/mcp-filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ai-capabilities-suite/mcp-filesystem"
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", //compile to modern js
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist", //put compile js into dist/
+    "rootDir": "./src", //looks for typescript files in src/
+    "strict": true, // enables all type-checking (catches bugs early)
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "types": ["node"]
+  },
+  "include": ["src/**/*"], //compiles all .ts files in src/
+  "exclude": ["node_modules", "dist"]
+}
