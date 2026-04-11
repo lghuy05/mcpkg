@@ -1,5 +1,5 @@
-import inquirer from 'inquirer';
 import { sortServersByScore, scoreServer } from './ranking.js';
+import { promptUserSelection } from './prompts.js';
 export async function pickBestServer(entries, query) {
     if (entries.length === 0)
         return null;
@@ -18,7 +18,7 @@ export async function pickBestServer(entries, query) {
     // Otherwise → ask user
     return await promptUserSelection(sorted);
 }
-function getKind(entry) {
+export function getKind(entry) {
     if (entry?.server?.remotes?.length) {
         return 'remote';
     }
@@ -28,22 +28,4 @@ function getKind(entry) {
     else {
         return 'unknown';
     }
-}
-export async function promptUserSelection(entries) {
-    const choices = entries.slice(0, 5).map((entry) => {
-        const server = entry.server;
-        return {
-            name: `${server.name} (${getKind(entry)})\n ${server.description ?? 'No description'}`,
-            value: entry,
-        };
-    });
-    const answer = await inquirer.prompt([
-        {
-            type: 'select',
-            name: 'selected',
-            message: 'Multiple MCP servers found. Choose one:',
-            choices,
-        },
-    ]);
-    return answer.selected;
 }

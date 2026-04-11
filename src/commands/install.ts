@@ -3,17 +3,19 @@ import chalk from 'chalk';
 import ora from 'ora';
 // import { findExactServer } from '../services/registry.js';
 import { searchRegistry } from '../services/registry.js';
-import { promptUserSelection } from '../services/select.js';
+import { promptUserSelection } from '../services/prompts.js';
 import { createInstallPlan } from '../services/planner.js';
 import { upsertProjectServer, loadProjectConfig } from '../services/project.js';
 import { writeFile } from 'node:fs/promises';
+import { loadClaudeConfig, saveClaudeConfig, upsertClaudeServer } from '../services/claude.js';
 
 export function registerInstallCommand(program: Command): void {
   program
     .command('install <server>')
     .description('Resolve an MCP server into a usable setup plan')
     .option('--project', "Write MCP config to mcpkg.json in the current project")
-    .action(async (serverName: string, options: { project?: boolean }) => {
+    .option('--claude', "Write MCP config Claude desktop")
+    .action(async (serverName: string, options: { claude: any, project: any }) => {
       const spinner = ora(`Fetching info for "${serverName}"...`).start();
 
       try {
@@ -41,26 +43,39 @@ export function registerInstallCommand(program: Command): void {
         //TODO: apiKey, should be provide via argument (however, better improvement should be have a seperate prompt for user to paste in apiKey) 
         if (options.project) {
           if (plan.kind === "local-config") {
+            if (plan.requiredEnvVars) {
+              //TODO: create prompt
+            }
             // const raw = await readFile('mcpkg.json', 'utf8');
             const currentConfig = await loadProjectConfig();
             const updatedConfig = upsertProjectServer(currentConfig, selectedEntry.server.name, plan.config);
+            //TODO: implement saveProjectConfig
             await writeFile(
               'mcpkg.json',
               JSON.stringify(updatedConfig, null, 2),
               'utf8'
             );
             console.log(`Added ${selectedEntry.server.name}`);
-          } else if (plan.kind === "remote-config") {
-            console.log("Project install for remote MCP servers is not supported yet.");
-            console.log(`Remote URL: ${plan.config.url}`);
           }
-          else {
-            // cannot write project config
-            console.log("This server requires manual setup and cannot be written to mcpkg.json yet.");
-            return;
-          }
+          // cannot write project config
+          console.log("This server requires manual setup and cannot be written to mcpkg.json yet.");
+          return;
         }
 
+        if (options.claude) {
+          if (plan.kind === "local-config") {
+            if (plan.requiredEnvVars) {
+              //TODO: create prompt
+            }
+            const currentConfig = await loadClaudeConfig();
+            const updatedConfig = upsertClaudeServer(currentConfig, selectedEntry.server.name, plan.config);
+            saveClaudeConfig(updatedConfig);
+            console.log(`Added in claude desktop json`);
+          }
+
+          console.log("This server requires manual setup and cannot be written to mcpkg.json yet.");
+          return;
+        }
 
       } catch (error) {
         spinner.fail('Failed to fetch server');

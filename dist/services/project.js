@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 export function upsertProjectServer(existingConfig, serverKey, localConfig) {
     return {
         ...existingConfig,
@@ -30,4 +30,7 @@ export async function loadProjectConfig() {
         }
         throw error;
     }
+}
+export async function saveProjectConfig(config) {
+    await writeFile("mcpkg.json", JSON.stringify(config, null, 2), "utf8");
 }

@@ -1,1 +1,57 @@
-export {};
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+export function getClaudeConfigPath() {
+    const home = os.homedir();
+    if (os.platform() === "win32") {
+        const appData = process.env.APPDATA;
+        if (!appData) {
+            throw new Error("APPDATA is not set");
+        }
+        return path.join(appData, "Claude", "claude_desktop_config.json");
+    }
+    if (os.platform() === "linux") {
+        return path.join(home, ".config", "Claude", "claude_desktop_config.json");
+    }
+    if (os.platform() === "darwin") {
+        return path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+    }
+    throw new Error("Unsupported platform for Claude config path");
+}
+export function upsertClaudeServer(existingConfig, serverKey, localConfig) {
+    return {
+        ...existingConfig,
+        mcpServers: {
+            ...existingConfig.mcpServers,
+            [serverKey]: localConfig
+        }
+    };
+}
+export async function loadClaudeConfig() {
+    try {
+        const path = getClaudeConfigPath();
+        const raw = await readFile(path, "utf8");
+        if (raw.trim() === "") {
+            return {
+                mcpServers: {}
+            };
+        }
+        const parsed = JSON.parse(raw);
+        return parsed;
+    }
+    catch (error) {
+        if (typeof error === "object" &&
+            error != null &&
+            "code" in error &&
+            error.code === "ENOENT") {
+            return {
+                mcpServers: {}
+            };
+        }
+        throw error;
+    }
+}
+export async function saveClaudeConfig(config) {
+    const path = getClaudeConfigPath();
+    await writeFile(path, JSON.stringify(config, null, 2), "utf8");
+}

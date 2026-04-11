@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { LocalCommandConfig, ProjectMcpConfig } from "../types/mcp.js";
+import { readFile, writeFile } from "node:fs/promises";
+import { EnvironmentVariable, LocalCommandConfig, ProjectMcpConfig } from "../types/mcp.js";
 
 export function upsertProjectServer(existingConfig: ProjectMcpConfig, serverKey: string, localConfig: LocalCommandConfig) {
   return {
@@ -37,4 +37,8 @@ export async function loadProjectConfig() {
     }
     throw error;
   }
+}
+
+export async function saveProjectConfig(config: ProjectMcpConfig) {
+  await writeFile("mcpkg.json", JSON.stringify(config, null, 2), "utf8");
 }

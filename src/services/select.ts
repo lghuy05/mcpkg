@@ -2,6 +2,7 @@ import inquirer from 'inquirer';
 import { McpServer, RegistryServerEntry } from '../types/mcp.js';
 import { sortServersByScore, scoreServer } from './ranking.js';
 import { McpError } from '@modelcontextprotocol/sdk/types';
+import { promptUserSelection } from './prompts.js';
 
 export async function pickBestServer(
   entries: RegistryServerEntry[],
@@ -29,7 +30,7 @@ export async function pickBestServer(
   return await promptUserSelection(sorted);
 }
 
-function getKind(entry: RegistryServerEntry): 'local' | 'remote' | 'unknown' {
+export function getKind(entry: RegistryServerEntry): 'local' | 'remote' | 'unknown' {
   if (entry?.server?.remotes?.length) {
     return 'remote';
   } else if (entry.server?.packages?.length) {
@@ -37,29 +38,5 @@ function getKind(entry: RegistryServerEntry): 'local' | 'remote' | 'unknown' {
   } else {
     return 'unknown';
   }
-}
-
-export async function promptUserSelection(
-  entries: RegistryServerEntry[]
-): Promise<RegistryServerEntry> {
-  const choices = entries.slice(0, 5).map((entry) => {
-    const server = entry.server;
-
-    return {
-      name: `${server.name} (${getKind(entry)})\n ${server.description ?? 'No description'}`,
-      value: entry,
-    };
-  });
-
-  const answer = await inquirer.prompt([
-    {
-      type: 'select',
-      name: 'selected',
-      message: 'Multiple MCP servers found. Choose one:',
-      choices,
-    },
-  ]);
-
-  return answer.selected;
 }
 

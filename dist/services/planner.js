@@ -6,6 +6,17 @@ function buildPackagePlan(pkg) {
     // transport tells us HOW the client will talk to it.
     if (transportType === 'stdio') {
         if (registryType === 'npm') {
+            if (pkg.environmentVariables) {
+                return {
+                    kind: 'local-config',
+                    summary: `Run npm package "${pkg.identifier}" through npx`,
+                    config: {
+                        command: 'npx',
+                        args: ['-y', pkg.identifier],
+                    },
+                    requiredEnvVars: pkg.environmentVariables,
+                };
+            }
             return {
                 kind: 'local-config',
                 summary: `Run npm package "${pkg.identifier}" through npx`, config: {

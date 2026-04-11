@@ -10,6 +10,15 @@ export interface McpPackage {
   identifier: string;
   version?: string;
   transport?: McpTransport;
+  environmentVariables?: EnvironmentVariable[];
+}
+
+export interface EnvironmentVariable {
+  description: string;
+  isRequired: boolean;
+  format?: string;
+  isSecret: boolean;
+  name: string;
 }
 
 export interface McpRemote {
@@ -44,9 +53,16 @@ export interface RegistrySearchResponse {
 export interface LocalCommandConfig {
   command: string;
   args: string[];
+  env?: Record<string, string>;
 }
 
 export interface ProjectMcpConfig {
+  mcpServers: Record<string, LocalCommandConfig>;
+}
+
+
+export interface ClaudeMcpConfig {
+  //other existed component that not even mcpServer
   mcpServers: Record<string, LocalCommandConfig>;
 }
 
@@ -60,6 +76,7 @@ export type InstallPlan =
     kind: 'local-config';
     summary: string;
     config: LocalCommandConfig;
+    requiredEnvVars?: EnvironmentVariable[];
   }
   | {
     kind: 'remote-config';
