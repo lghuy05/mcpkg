@@ -1,11 +1,17 @@
 {
-  "name": "mcpkg",
+  "name": "@iyui/mcpkg",
   "version": "0.1.0-alpha.0",
   "description": "Community package manager for MCP servers",
   "main": "dist/index.js",
   "bin": {
-    "mcpkg": "./dist/index.js"
+    "mcpkg": "dist/index.js"
   },
+  "files": [
+    "dist/**/*.js",
+    "!dist/**/*.test.js",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "npm run build && node --test \"dist/**/*.test.js\"",
     "smoke": "npm run build && node scripts/smoke-pack.mjs",
