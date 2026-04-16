@@ -28,10 +28,33 @@ export async function promptForEnvVars(requiredEnvVars) {
             {
                 type: envVar.isSecret ? "password" : "input",
                 name: "value",
-                message: envVar.description ?? `Enter value for ${envVar.name}`
+                message: envVar.description ?? `Enter value for ${envVar.name}`,
+                mask: envVar.isSecret ? "*" : undefined,
             }
         ]);
         env[envVar.name] = answer.value;
     }
     return env;
+}
+export async function promptForInstallQuestions(questions) {
+    const answers = {};
+    for (const question of questions) {
+        const answer = await inquirer.prompt([
+            {
+                type: question.secret ? "password" : "input",
+                name: "value",
+                message: question.message,
+                mask: question.secret ? "*" : undefined,
+                default: question.defaultValue,
+                validate: (value) => {
+                    if (question.required !== false && !value?.trim()) {
+                        return `${question.label} is required`;
+                    }
+                    return true;
+                },
+            }
+        ]);
+        answers[question.key] = answer.value;
+    }
+    return answers;
 }

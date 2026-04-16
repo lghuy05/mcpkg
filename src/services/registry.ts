@@ -1,9 +1,10 @@
 import { McpServer, RegistrySearchResponse, RegistryServerEntry } from '../types/mcp.js';
+import { fetchWithTimeout } from './http.js';
 
 const REGISTRY_URL = 'https://registry.modelcontextprotocol.io/v0/servers';
 
 export async function searchRegistry(query: string): Promise<RegistryServerEntry[]> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${REGISTRY_URL}?search=${encodeURIComponent(query)}`
   );
 

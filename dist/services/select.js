@@ -3,6 +3,10 @@ import { promptUserSelection } from './prompts.js';
 export async function pickBestServer(entries, query) {
     if (entries.length === 0)
         return null;
+    const exact = findExactEntry(entries, query);
+    if (exact) {
+        return exact;
+    }
     const sorted = sortServersByScore(entries, query);
     // If only one → trivial
     if (sorted.length === 1)
@@ -17,6 +21,23 @@ export async function pickBestServer(entries, query) {
     }
     // Otherwise → ask user
     return await promptUserSelection(sorted);
+}
+export function findExactEntry(entries, query) {
+    const normalized = query.trim().toLowerCase();
+    return (entries.find((entry) => {
+        const name = entry.server.name?.trim().toLowerCase();
+        const id = entry.server.id?.trim().toLowerCase();
+        return name === normalized || id === normalized;
+    }) ?? null);
+}
+export function hasClearlyDominantMatch(entries, query) {
+    if (entries.length <= 1) {
+        return true;
+    }
+    const sorted = sortServersByScore(entries, query);
+    const bestScore = scoreServer(sorted[0], query);
+    const secondScore = scoreServer(sorted[1], query);
+    return bestScore - secondScore >= 20;
 }
 export function getKind(entry) {
     if (entry?.server?.remotes?.length) {

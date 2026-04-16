@@ -1,11 +1,18 @@
 import { readFile, writeFile } from "node:fs/promises";
-export function upsertProjectServer(existingConfig, serverKey, localConfig) {
+export function upsertProjectServer(existingConfig, serverKey, config) {
     return {
         ...existingConfig,
         mcpServers: {
             ...existingConfig.mcpServers,
-            [serverKey]: localConfig
+            [serverKey]: config
         }
+    };
+}
+export function removeProjectServer(existingConfig, serverKey) {
+    const { [serverKey]: _removed, ...remainingServers } = existingConfig.mcpServers ?? {};
+    return {
+        ...existingConfig,
+        mcpServers: remainingServers
     };
 }
 export async function loadProjectConfig() {

@@ -19,14 +19,17 @@ function buildPackagePlan(pkg: McpPackage): InstallPlan {
             args: ['-y', pkg.identifier],
           },
           requiredEnvVars: pkg.environmentVariables,
+          packageArguments: pkg.packageArguments,
         };
       }
       return {
         kind: 'local-config',
-        summary: `Run npm package "${pkg.identifier}" through npx`, config: {
+        summary: `Run npm package "${pkg.identifier}" through npx`,
+        config: {
           command: 'npx',
           args: ['-y', pkg.identifier],
         },
+        packageArguments: pkg.packageArguments,
       };
     }
 
@@ -38,6 +41,7 @@ function buildPackagePlan(pkg: McpPackage): InstallPlan {
           command: 'docker',
           args: ['run', '--rm', '-i', pkg.identifier],
         },
+        packageArguments: pkg.packageArguments,
       };
     }
 
@@ -101,7 +105,7 @@ export function createInstallPlan(server: McpServer): InstallPlan {
   }
 
   if (server.packages && server.packages.length > 0) {
-    return buildPackagePlan(server.packages[0]);
+    return buildPackagePlan(selectBestPackage(server.packages));
   }
 
   if (server.repository?.url) {
@@ -124,4 +128,21 @@ export function createInstallPlan(server: McpServer): InstallPlan {
       'Manual inspection is required.',
     ],
   };
+}
+
+function selectBestPackage(packages: McpPackage[]): McpPackage {
+  return [...packages].sort((a, b) => scorePackage(b) - scorePackage(a))[0];
+}
+
+function scorePackage(pkg: McpPackage): number {
+  let score = 0;
+
+  if (pkg.transport?.type === 'stdio') score += 100;
+  if (pkg.registryType === 'npm') score += 30;
+  if (pkg.registryType === 'docker') score += 20;
+  if (pkg.registryType === 'pypi') score += 10;
+  if (pkg.environmentVariables?.length) score += 5;
+  if (pkg.packageArguments?.length) score += 5;
+
+  return score;
 }

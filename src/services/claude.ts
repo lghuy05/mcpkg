@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { ClaudeMcpConfig, LocalCommandConfig, } from "../types/mcp.js";
+import { ClaudeMcpConfig, ClientMcpConfig } from "../types/mcp.js";
 import path from "node:path";
 import os from "node:os";
 
@@ -21,15 +21,24 @@ export function getClaudeConfigPath(): string {
   throw new Error("Unsupported platform for Claude config path");
 }
 
-export function upsertClaudeServer(existingConfig: ClaudeMcpConfig, serverKey: string, localConfig: LocalCommandConfig) {
+export function upsertClaudeServer(existingConfig: ClaudeMcpConfig, serverKey: string, config: ClientMcpConfig) {
   return {
     ...existingConfig,
     mcpServers: {
       ...existingConfig.mcpServers,
-      [serverKey]: localConfig
+      [serverKey]: config
     }
   };
 
+}
+
+export function removeClaudeServer(existingConfig: ClaudeMcpConfig, serverKey: string) {
+  const { [serverKey]: _removed, ...remainingServers } = existingConfig.mcpServers ?? {};
+
+  return {
+    ...existingConfig,
+    mcpServers: remainingServers
+  };
 }
 
 export async function loadClaudeConfig() {

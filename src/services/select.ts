@@ -10,6 +10,11 @@ export async function pickBestServer(
 ): Promise<RegistryServerEntry | null> {
   if (entries.length === 0) return null;
 
+  const exact = findExactEntry(entries, query);
+  if (exact) {
+    return exact;
+  }
+
   const sorted = sortServersByScore(entries, query);
 
   // If only one → trivial
@@ -30,6 +35,35 @@ export async function pickBestServer(
   return await promptUserSelection(sorted);
 }
 
+export function findExactEntry(
+  entries: RegistryServerEntry[],
+  query: string
+): RegistryServerEntry | null {
+  const normalized = query.trim().toLowerCase();
+
+  return (
+    entries.find((entry) => {
+      const name = entry.server.name?.trim().toLowerCase();
+      const id = entry.server.id?.trim().toLowerCase();
+      return name === normalized || id === normalized;
+    }) ?? null
+  );
+}
+
+export function hasClearlyDominantMatch(
+  entries: RegistryServerEntry[],
+  query: string
+): boolean {
+  if (entries.length <= 1) {
+    return true;
+  }
+
+  const sorted = sortServersByScore(entries, query);
+  const bestScore = scoreServer(sorted[0], query);
+  const secondScore = scoreServer(sorted[1], query);
+  return bestScore - secondScore >= 20;
+}
+
 export function getKind(entry: RegistryServerEntry): 'local' | 'remote' | 'unknown' {
   if (entry?.server?.remotes?.length) {
     return 'remote';
@@ -39,4 +73,3 @@ export function getKind(entry: RegistryServerEntry): 'local' | 'remote' | 'unkno
     return 'unknown';
   }
 }
-

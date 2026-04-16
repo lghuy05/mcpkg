@@ -1,6 +1,7 @@
+import { fetchWithTimeout } from './http.js';
 const REGISTRY_URL = 'https://registry.modelcontextprotocol.io/v0/servers';
 export async function searchRegistry(query) {
-    const response = await fetch(`${REGISTRY_URL}?search=${encodeURIComponent(query)}`);
+    const response = await fetchWithTimeout(`${REGISTRY_URL}?search=${encodeURIComponent(query)}`);
     if (!response.ok) {
         throw new Error(`Registry API returned ${response.status}`);
     }

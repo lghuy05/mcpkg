@@ -18,13 +18,20 @@ export function getClaudeConfigPath() {
     }
     throw new Error("Unsupported platform for Claude config path");
 }
-export function upsertClaudeServer(existingConfig, serverKey, localConfig) {
+export function upsertClaudeServer(existingConfig, serverKey, config) {
     return {
         ...existingConfig,
         mcpServers: {
             ...existingConfig.mcpServers,
-            [serverKey]: localConfig
+            [serverKey]: config
         }
+    };
+}
+export function removeClaudeServer(existingConfig, serverKey) {
+    const { [serverKey]: _removed, ...remainingServers } = existingConfig.mcpServers ?? {};
+    return {
+        ...existingConfig,
+        mcpServers: remainingServers
     };
 }
 export async function loadClaudeConfig() {

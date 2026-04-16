@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { InstallPlan, McpServer, RegistryServerEntry } from '../types/mcp.js';
+import { InstallPlan, McpServer, RegistryServerEntry, VerificationResult } from '../types/mcp.js';
 import {
   hasPackage,
   hasRemote,
@@ -7,53 +7,155 @@ import {
   isLatest,
   isOfficial,
 } from '../services/ranking.js';
+import { Recommendation } from '../services/recommend.js';
+import { AgentFindResult } from '../services/findAgent.js';
+import { AlternativeRecommendation } from '../services/alternatives.js';
 
 export function printSearchResults(query: string, entries: RegistryServerEntry[]): void {
   if (entries.length === 0) {
-    console.log(chalk.yellow(`No servers found for "${query}"`));
+    printEmpty(`No servers found for "${query}"`);
     return;
   }
 
-  console.log(chalk.green(`\nFound ${entries.length} server(s):\n`));
+  printHeader('Search results');
+  printKeyValue('query', query);
+  printKeyValue('matches', String(entries.length));
+  console.log('');
 
   entries.forEach((entry, index) => {
     const server = entry.server;
     const recommended = index === 0;
     const badges = buildBadges(entry, recommended);
-
-    const titleColor = recommended ? chalk.greenBright.bold : chalk.cyan;
-
-    console.log(titleColor(`${index + 1}. ${server.name}`));
-
-    if (badges.length > 0) {
-      console.log(`   ${badges.join(chalk.gray(' • '))}`);
-    }
-
-    console.log(
-      chalk.gray(`   ${server.description?.substring(0, 120) || 'No description'}`)
-    );
-
-    console.log(chalk.dim(`   ${getRuntimeText(entry)}`));
-
-    if (server.id) {
-      console.log(chalk.dim(`   ID: ${server.id}`));
-    }
-
+    printCandidate(index + 1, server.name, server.description, getRuntimeText(entry), badges);
     console.log('');
   });
 }
 
+export function printRecommendation(query: string, recommendation: Recommendation | null): void {
+  if (!recommendation) {
+    printEmpty(`No servers found for "${query}"`);
+    return;
+  }
+
+  const { entry, rationale } = recommendation;
+  const server = entry.server;
+
+  printHeader('Recommendation');
+  printKeyValue('request', query);
+  printKeyValue('pick', server.name);
+  printKeyValue('runtime', getRuntimeText(entry));
+  printWrapped('about', server.description || 'No description');
+
+  if (rationale.length > 0) {
+    printList('why', rationale);
+  }
+
+  printKeyValue('next', `mcpkg install "${server.name}" --claude`);
+  console.log('');
+}
+
+export function printAgentRecommendation(query: string, recommendation: AgentFindResult | null): void {
+  if (!recommendation) {
+    printEmpty(`No servers found for "${query}"`);
+    return;
+  }
+
+  if (!recommendation.entry) {
+    printEmpty(`No servers found for "${query}"`);
+
+    if (recommendation.rationale.length > 0) {
+      printList('reason', recommendation.rationale);
+    }
+
+    if (recommendation.searchedTerms && recommendation.searchedTerms.length > 0) {
+      printKeyValue('searched', recommendation.searchedTerms.join(', '));
+    }
+
+    console.log('');
+    return;
+  }
+
+  const server = recommendation.entry.server;
+  const source = recommendation.source === 'agent' ? 'agent' : 'heuristic';
+
+  printHeader('Recommendation');
+  printKeyValue('request', query);
+  printKeyValue('pick', `${server.name} ${chalk.dim(`[${source}]`)}`);
+  printKeyValue('runtime', getRuntimeText(recommendation.entry));
+  printWrapped('about', server.description || 'No description');
+
+  if (recommendation.rationale.length > 0) {
+    printList('why', recommendation.rationale.slice(0, 3));
+  }
+
+  if (recommendation.searchedTerms && recommendation.searchedTerms.length > 0) {
+    printKeyValue('searched', recommendation.searchedTerms.join(', '));
+  }
+
+  const exactKey = server.id || server.name;
+  if (exactKey) {
+    printKeyValue('inspect', `mcpkg search "${exactKey}"`);
+    printKeyValue('install', `mcpkg install "${exactKey}" --claude`);
+  }
+
+  console.log('');
+}
+
+export function printServerDetails(entry: RegistryServerEntry): void {
+  const server = entry.server;
+  const badges = buildBadges(entry, true);
+
+  printHeader(server.name);
+  printKeyValue('status', badges.join(' ') || 'registry entry');
+
+  if (server.id) {
+    printKeyValue('id', server.id);
+  }
+
+  printWrapped('about', server.description || 'No description');
+  printKeyValue('runtime', getRuntimeText(entry));
+
+  if (server.repository?.url) {
+    printKeyValue('repo', server.repository.url);
+  }
+
+  if (server.packages?.length) {
+    printSubheader('packages');
+    server.packages.forEach((pkg) => {
+      const envVars = pkg.environmentVariables?.filter((envVar) => envVar.isRequired).map((envVar) => envVar.name) ?? [];
+      const packageArgs = pkg.packageArguments?.filter((arg) => arg.isRequired).map((arg) => arg.name) ?? [];
+      console.log(chalk.gray(`  - ${pkg.registryType}/${pkg.transport?.type ?? 'unknown'} ${pkg.identifier}${pkg.version ? `@${pkg.version}` : ''}`));
+      if (envVars.length > 0) {
+        console.log(chalk.dim(`    env: ${envVars.join(', ')}`));
+      }
+      if (packageArgs.length > 0) {
+        console.log(chalk.dim(`    args: ${packageArgs.join(', ')}`));
+      }
+    });
+  }
+
+  if (server.remotes?.length) {
+    printSubheader('remotes');
+    server.remotes.forEach((remote) => {
+      console.log(chalk.gray(`  - ${remote.type} ${remote.url}`));
+    });
+  }
+
+  console.log('');
+}
+
 export function printServerFound(server: McpServer): void {
-  console.log(chalk.green(`Found: ${server.name}`));
-  console.log(chalk.gray(`Description: ${server.description || 'No description'}`));
+  printHeader('Found');
+  printKeyValue('server', server.name);
+  printWrapped('about', server.description || 'No description');
 }
 
 export function printInstallPlan(plan: InstallPlan): void {
-  console.log(chalk.blue('\nInstall plan'));
-  console.log(chalk.gray(`${plan.summary}`));
+  printHeader('Install plan');
+  printWrapped('summary', plan.summary);
 
   if (plan.kind === 'local-config') {
-    console.log(chalk.green('\n Local MCP config generated:'));
+    printSubheader('local config');
     console.log(
       JSON.stringify(
         {
@@ -68,7 +170,7 @@ export function printInstallPlan(plan: InstallPlan): void {
   }
 
   if (plan.kind === 'remote-config') {
-    console.log(chalk.green('\n Remote MCP config generated:'));
+    printSubheader('remote config');
     console.log(
       JSON.stringify(
         {
@@ -82,35 +184,90 @@ export function printInstallPlan(plan: InstallPlan): void {
     return;
   }
 
-  console.log(chalk.yellow('\n Manual setup required:'));
+  printSubheader('manual setup');
   plan.steps.forEach((step, index) => {
-    console.log(chalk.gray(`   ${index + 1}. ${step}`));
+    console.log(chalk.gray(`  ${index + 1}. ${step}`));
   });
+}
+
+export function printVerificationResult(result: VerificationResult): void {
+  if (result.ok) {
+    printStatus('ok', 'verification', result.message);
+    return;
+  }
+
+  printStatus('fail', 'verification', result.message);
+  if (result.failureKind) {
+    printKeyValue('problem', formatFailureKind(result.failureKind));
+  }
+  result.details?.forEach((detail) => {
+    console.log(chalk.dim(`  ${truncate(detail, 180)}`));
+  });
+}
+
+export function printAlternativeRecommendations(alternatives: AlternativeRecommendation[]): void {
+  if (alternatives.length === 0) {
+    printEmpty('No alternative MCP server could be recommended from the registry.');
+    return;
+  }
+
+  printHeader('Alternatives');
+  alternatives.forEach((alternative, index) => {
+    const server = alternative.entry.server;
+    printCandidate(index + 1, server.name, server.description, getRuntimeText(alternative.entry), []);
+    alternative.rationale.slice(0, 2).forEach((reason) => {
+      console.log(chalk.dim(`    ${reason}`));
+    });
+    console.log(chalk.gray(`    install: mcpkg install "${server.name}" --claude`));
+  });
+}
+
+function formatFailureKind(kind: NonNullable<VerificationResult['failureKind']>): string {
+  switch (kind) {
+    case 'invalid_stdio_output':
+      return 'invalid stdio output';
+    case 'invalid_launcher':
+      return 'invalid package launcher';
+    case 'too_many_arguments':
+      return 'too many command arguments';
+    case 'missing_input':
+      return 'missing required input';
+    case 'process_not_found':
+      return 'command not found';
+    case 'remote_unreachable':
+      return 'remote endpoint unreachable';
+    case 'process_exited':
+      return 'process exited early';
+    case 'timeout':
+      return 'startup timeout';
+    case 'unknown':
+      return 'unknown';
+  }
 }
 
 function buildBadges(entry: RegistryServerEntry, isRecommended: boolean): string[] {
   const badges: string[] = [];
 
   if (isRecommended) {
-    badges.push(chalk.bgGreen.black(' RECOMMENDED '));
+    badges.push(chalk.green('[recommended]'));
   }
 
   if (isOfficial(entry)) {
-    badges.push(chalk.blue('official'));
+    badges.push(chalk.blue('[official]'));
   }
 
   if (isLatest(entry)) {
-    badges.push(chalk.magenta('latest'));
+    badges.push(chalk.magenta('[latest]'));
   }
 
   if (isActive(entry)) {
-    badges.push(chalk.green('active'));
+    badges.push(chalk.green('[active]'));
   }
 
   if (hasRemote(entry)) {
-    badges.push(chalk.cyan('remote'));
+    badges.push(chalk.cyan('[remote]'));
   } else if (hasPackage(entry)) {
-    badges.push(chalk.yellow('local'));
+    badges.push(chalk.yellow('[local]'));
   }
 
   return badges;
@@ -121,19 +278,83 @@ function getRuntimeText(entry: RegistryServerEntry): string {
 
   if (server.remotes?.length) {
     const remote = server.remotes[0];
-    return `🌐 ${remote.type.toUpperCase()} · ${remote.url}`;
+    return `remote ${remote.type} ${remote.url}`;
   }
 
   if (server.packages?.length) {
     const pkg = server.packages[0];
     const transport = pkg.transport?.type ?? 'unknown';
-    return `🖥 ${pkg.registryType} · ${transport} · ${pkg.identifier}`;
+    return `local ${pkg.registryType}/${transport} ${pkg.identifier}`;
   }
 
   if (server.repository?.url) {
-    return `📦 repo · ${server.repository.url}`;
+    return `repo ${server.repository.url}`;
   }
 
   return 'Unknown runtime';
 }
 
+function printHeader(title: string): void {
+  console.log('');
+  console.log(chalk.bold(title));
+}
+
+function printSubheader(title: string): void {
+  console.log('');
+  console.log(chalk.cyan(title));
+}
+
+function printKeyValue(key: string, value: string): void {
+  console.log(`${chalk.dim(key.padEnd(9))} ${value}`);
+}
+
+function printWrapped(key: string, value: string): void {
+  printKeyValue(key, truncate(value.replace(/\s+/g, ' '), 120));
+}
+
+function printList(key: string, values: string[]): void {
+  if (values.length === 0) {
+    return;
+  }
+
+  console.log(`${chalk.dim(key.padEnd(9))} ${truncate(values[0], 100)}`);
+  values.slice(1).forEach((value) => {
+    console.log(`${chalk.dim(''.padEnd(9))} ${truncate(value, 100)}`);
+  });
+}
+
+function printStatus(kind: 'ok' | 'fail' | 'warn', label: string, message: string): void {
+  const marker =
+    kind === 'ok'
+      ? chalk.green('OK')
+      : kind === 'warn'
+        ? chalk.yellow('WARN')
+        : chalk.red('FAIL');
+
+  console.log(`${marker} ${chalk.bold(label)} ${chalk.dim(truncate(message, 120))}`);
+}
+
+function printCandidate(
+  index: number,
+  name: string,
+  description: string | undefined,
+  runtime: string,
+  badges: string[]
+): void {
+  const badgeText = badges.length > 0 ? ` ${badges.join(' ')}` : '';
+  console.log(`${chalk.dim(`${index}.`.padEnd(4))}${chalk.greenBright(name)}${badgeText}`);
+  console.log(chalk.gray(`    ${truncate(description || 'No description', 110)}`));
+  console.log(chalk.dim(`    ${runtime}`));
+}
+
+function printEmpty(message: string): void {
+  console.log(chalk.yellow(message));
+}
+
+function truncate(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
+}

@@ -1,16 +1,25 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { EnvironmentVariable, LocalCommandConfig, ProjectMcpConfig } from "../types/mcp.js";
+import { ClientMcpConfig, ProjectMcpConfig } from "../types/mcp.js";
 
-export function upsertProjectServer(existingConfig: ProjectMcpConfig, serverKey: string, localConfig: LocalCommandConfig) {
+export function upsertProjectServer(existingConfig: ProjectMcpConfig, serverKey: string, config: ClientMcpConfig) {
   return {
     ...existingConfig,
     mcpServers: {
       ...existingConfig.mcpServers,
-      [serverKey]: localConfig
+      [serverKey]: config
 
     }
   };
 
+}
+
+export function removeProjectServer(existingConfig: ProjectMcpConfig, serverKey: string) {
+  const { [serverKey]: _removed, ...remainingServers } = existingConfig.mcpServers ?? {};
+
+  return {
+    ...existingConfig,
+    mcpServers: remainingServers
+  };
 }
 
 export async function loadProjectConfig() {
