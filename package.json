@@ -1,13 +1,14 @@
 {
   "name": "mcpkg",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.0",
   "description": "Community package manager for MCP servers",
   "main": "dist/index.js",
   "bin": {
     "mcpkg": "./dist/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "smoke": "npm run build && node scripts/smoke-pack.mjs",
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
@@ -25,7 +26,7 @@
     "tools"
   ],
   "author": "Huy Luong",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "bugs": {
     "url": "https://github.com/lghuy05/mcpkg/issues"

@@ -5,6 +5,7 @@ import { registerInstallCommand } from './commands/install.js';
 import { registerListCommand } from './commands/list.js';
 import { registerRemoveCommand } from './commands/remove.js';
 import { registerGuideCommand } from './commands/guide.js';
+import { registerSetupCommand } from './commands/setup.js';
 export function buildCli() {
     const program = new Command();
     program
@@ -13,6 +14,7 @@ export function buildCli() {
         .version('1.0.0')
         .addHelpText('after', '\nRun "mcpkg guide" for the recommended workflow.\n');
     registerGuideCommand(program);
+    registerSetupCommand(program);
     registerSearchCommand(program);
     registerFindCommand(program);
     registerInstallCommand(program);

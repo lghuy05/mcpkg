@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { ClaudeMcpConfig, ClientMcpConfig } from "../types/mcp.js";
 import path from "node:path";
 import os from "node:os";
+import { parseMcpConfig } from "./config.js";
 
 export function getClaudeConfigPath(): string {
   const home = os.homedir();
@@ -46,14 +47,7 @@ export async function loadClaudeConfig() {
     const path = getClaudeConfigPath();
     const raw = await readFile(path, "utf8");
 
-    if (raw.trim() === "") {
-      return {
-        mcpServers: {}
-      };
-    }
-
-    const parsed = JSON.parse(raw);
-    return parsed;
+    return parseMcpConfig(raw, path) as ClaudeMcpConfig;
   } catch (error) {
     if (
       typeof error === "object" &&

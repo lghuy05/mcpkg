@@ -1,12 +1,14 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { applyUserConfigToEnv, loadUserConfigSync } from './userConfig.js';
 let loaded = false;
 export function loadLocalEnv(cwd = process.cwd()) {
     if (loaded) {
         return;
     }
     loaded = true;
+    applyUserConfigToEnv(loadUserConfigSync());
     const candidatePaths = [
         path.join(cwd, '.env'),
         path.join(os.homedir(), '.mcpkg', '.env'),

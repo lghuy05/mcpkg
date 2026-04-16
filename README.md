@@ -5,6 +5,7 @@
 ## Current Flow
 
 ```bash
+mcpkg setup
 mcpkg find "PostgreSQL MCP server that runs with npx and supports stdio"
 mcpkg search "capital.hove/read-only-local-postgres-mcp-server"
 mcpkg install "capital.hove/read-only-local-postgres-mcp-server" --claude
@@ -27,6 +28,18 @@ mcpkg guide
 ```
 
 Shows a practical usage guide in the terminal.
+
+```bash
+mcpkg setup
+```
+
+Stores user-level settings such as the optional Gemini API key. Config is stored in the correct per-user config directory for the operating system:
+
+```text
+macOS     ~/Library/Application Support/mcpkg/config.json
+Linux     ~/.config/mcpkg/config.json
+Windows   %APPDATA%\mcpkg\config.json
+```
 
 ```bash
 mcpkg find "<natural language request>"
@@ -76,7 +89,7 @@ MCPKG_VERIFY_TIMEOUT_MS=30000
 MCPKG_DEBUG=1
 ```
 
-`GEMINI_API_KEY` enables stronger reasoning for natural-language search, README requirement extraction, and install retry suggestions.
+`mcpkg setup` stores these values for normal use. Environment variables still work and take precedence when already set. `GEMINI_API_KEY` enables stronger reasoning for natural-language search, README requirement extraction, and install retry suggestions.
 
 ## Architecture
 
@@ -103,16 +116,22 @@ Important services:
 ```bash
 npm install
 npm run build
+npm test
+npm run smoke
 node dist/index.js guide
 ```
 
-There is no real test suite yet. Before opening a pull request, at minimum run:
+Before opening a pull request, at minimum run:
 
 ```bash
 npm run build
+npm test
+npm run smoke
 node dist/index.js list --project
 node dist/index.js search postgres
 ```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for project structure and pull request expectations.
 
 ## Design Principles
 

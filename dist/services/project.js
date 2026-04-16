@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { parseMcpConfig } from "./config.js";
 export function upsertProjectServer(existingConfig, serverKey, config) {
     return {
         ...existingConfig,
@@ -18,13 +19,7 @@ export function removeProjectServer(existingConfig, serverKey) {
 export async function loadProjectConfig() {
     try {
         const raw = await readFile("mcpkg.json", "utf8");
-        if (raw.trim() === "") {
-            return {
-                mcpServers: {}
-            };
-        }
-        const parsed = JSON.parse(raw);
-        return parsed;
+        return parseMcpConfig(raw, "mcpkg.json");
     }
     catch (error) {
         if (typeof error === "object" &&
